@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>zmbry-server</artifactId>
+    <artifactId>zmbry-store</artifactId>
     <dependencies>
         <dependency>
             <groupId>com.github.zmbry</groupId>
