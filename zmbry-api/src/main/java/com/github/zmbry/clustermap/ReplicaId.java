@@ -7,7 +7,7 @@ import java.util.List;
  *
  */
 public interface ReplicaId {
-    PartitionId getPartition();
+    PartitionId getPartitionId();
 
     DataNodeId getDataNodeId();
 

@@ -21,6 +21,31 @@
             <artifactId>zmbry-utils</artifactId>
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>com.github.zmbry</groupId>
+            <artifactId>zmbry-store</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.zmbry</groupId>
+            <artifactId>zmbry-replication</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.zmbry</groupId>
+            <artifactId>zmbry-commons</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.zmbry</groupId>
+            <artifactId>zmbry-messageformat</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.zmbry</groupId>
+            <artifactId>zmbry-network</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 
 

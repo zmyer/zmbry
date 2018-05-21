@@ -3,6 +3,7 @@ package com.github.zmbry.store;
 import com.github.zmbry.clustermap.DiskId;
 import com.github.zmbry.clustermap.PartitionId;
 import com.github.zmbry.clustermap.ReplicaId;
+import com.github.zmbry.clustermap.WriteStatusDelegate;
 import com.github.zmbry.config.DiskManagerConfig;
 import com.github.zmbry.config.StoreConfig;
 import com.github.zmbry.utils.Time;
@@ -21,16 +22,16 @@ import java.util.concurrent.TimeUnit;
  * @author zifeng
  *
  */
-public class StoreManager {
-    private static final Logger logger = LoggerFactory.getLogger(StoreManager.class);
+public class StorageManager {
+    private static final Logger logger = LoggerFactory.getLogger(StorageManager.class);
     private final Map<PartitionId, DiskManager> mPartitionIdDiskManagerMap = new HashMap<>();
     private final List<DiskManager> mDiskManagers = new ArrayList<DiskManager>();
     private final Time mTime;
 
-    public StoreManager(StoreConfig storeConfig, DiskManagerConfig diskManagerConfig, ScheduledExecutorService
+    public StorageManager(StoreConfig storeConfig, DiskManagerConfig diskManagerConfig, ScheduledExecutorService
             scheduledExecutorService, List<? extends ReplicaId> replicaIds, StoreKeyFactory storeKeyFactory,
             MessageStoreRecovery recovery, MessageStoreHardDelete hardDelete, WriteStatusDelegate
-            writeStatusDelegate, Time time) {
+            writeStatusDelegate, Time time) throws StoreException {
         verifyConfigs(storeConfig, diskManagerConfig);
         this.mTime = time;
         Map<DiskId, List<ReplicaId>> diskToReplicaMap = new HashMap<DiskId, List<ReplicaId>>();
@@ -45,7 +46,7 @@ public class StoreManager {
                     scheduledExecutorService, storeKeyFactory, recovery, hardDelete, writeStatusDelegate, time);
             mDiskManagers.add(diskManager);
             for (final ReplicaId replicaId : replicasForDisk) {
-                mPartitionIdDiskManagerMap.put(replicaId.getPartition(), diskManager);
+                mPartitionIdDiskManagerMap.put(replicaId.getPartitionId(), diskManager);
             }
         }
     }
@@ -69,7 +70,11 @@ public class StoreManager {
             List<Thread> startUpThreads = new ArrayList<>();
             for (final DiskManager diskManager : mDiskManagers) {
                 Thread thread = Utils.newThread("disk-manager-startUp-" + diskManager.getDisk(), () -> {
-                    diskManager.start();
+                    try {
+                        diskManager.start();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }, false);
                 thread.start();
                 startUpThreads.add(thread);
@@ -90,7 +95,11 @@ public class StoreManager {
             List<Thread> shutDownThreads = new ArrayList<>();
             for (final DiskManager diskManager : mDiskManagers) {
                 Thread thread = Utils.newThread("disk-manager-shutdown-" + diskManager.getDisk(), () -> {
-                    diskManager.shutDown();
+                    try {
+                        diskManager.shutDown();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }, false);
                 thread.start();
                 shutDownThreads.add(thread);
@@ -104,4 +113,8 @@ public class StoreManager {
         }
     }
 
+    public Store getStore(final PartitionId partition) {
+        DiskManager diskManager = mPartitionIdDiskManagerMap.get(partition);
+        return diskManager != null ? diskManager.getStore(partition) : null;
+    }
 }

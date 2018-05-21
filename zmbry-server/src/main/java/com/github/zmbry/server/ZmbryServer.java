@@ -4,6 +4,8 @@ import com.github.zmbry.clustermap.ClusterAgentFactory;
 import com.github.zmbry.clustermap.ClusterMap;
 import com.github.zmbry.clustermap.ClusterParticipant;
 import com.github.zmbry.clustermap.DataNodeId;
+import com.github.zmbry.clustermap.WriteStatusDelegate;
+import com.github.zmbry.commons.LoggingNotificationSystem;
 import com.github.zmbry.config.ClusterMapConfig;
 import com.github.zmbry.config.ConnectionPoolConfig;
 import com.github.zmbry.config.DiskManagerConfig;
@@ -14,15 +16,25 @@ import com.github.zmbry.config.ServerConfig;
 import com.github.zmbry.config.StatsManagerConfig;
 import com.github.zmbry.config.StoreConfig;
 import com.github.zmbry.config.VerifiableProperties;
+import com.github.zmbry.messageformat.BlobStoreHardDelete;
+import com.github.zmbry.messageformat.BlobStoreRecovery;
+import com.github.zmbry.network.BlockingChannelConnectionPool;
+import com.github.zmbry.network.ConnectionPool;
+import com.github.zmbry.notification.NotificationSystem;
+import com.github.zmbry.replication.ReplicationManager;
 import com.github.zmbry.store.FindTokenFactory;
+import com.github.zmbry.store.StorageManager;
+import com.github.zmbry.store.StoreException;
 import com.github.zmbry.store.StoreKeyFactory;
+import com.github.zmbry.utils.Time;
 import com.github.zmbry.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sun.net.NetworkServer;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.sql.Time;
+import java.security.GeneralSecurityException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -50,7 +62,7 @@ public class ZmbryServer {
 
     public ZmbryServer(final VerifiableProperties properties, final ClusterAgentFactory clusterAgentFactory, final Time
             time) {
-        this(properties, clusterAgentFactory, new LoggerNotificationSystem(), time);
+        this(properties, clusterAgentFactory, new LoggingNotificationSystem(), time);
     }
 
     public ZmbryServer(VerifiableProperties properties, ClusterAgentFactory clusterAgentFactory, NotificationSystem
@@ -63,7 +75,7 @@ public class ZmbryServer {
 
     public void startUp()
             throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException,
-            IllegalAccessException {
+            IllegalAccessException, StoreException, InterruptedException, GeneralSecurityException, IOException {
         logger.info("starting");
         mClusterMap = mClusterAgentFactory.getClusterMap();
         logger.info("Initialized custerMap");
@@ -94,28 +106,16 @@ public class ZmbryServer {
         FindTokenFactory findTokenFactory = Utils.getObj(replicationConfig.replicationTokenFactory, storeKeyFactory);
 
         mStorageManager = new StorageManager(storeConfig, diskManagerConfig, mScheduledExecutorService, mClusterMap
-                .getReplicaIds(nodeId), storeKeyFactory, new BlobStoreRecovery(), new BlockStoreHardDelete());
+                .getReplicaIds(nodeId), storeKeyFactory, new BlobStoreRecovery(), new BlobStoreHardDelete(),
+                new WriteStatusDelegate(mClusterParticipant), mTime);
+        mStorageManager.start();
 
+        mConnectionPool = new BlockingChannelConnectionPool(connectionPoolConfig, sslConfig, clusterMapConfig);
+        mConnectionPool.start();
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        mReplicationManager = new ReplicationManager(replicationConfig, clusterMapConfig, storeConfig,
+                mStorageManager, storeKeyFactory, mClusterMap, mScheduledExecutorService, nodeId, mConnectionPool,
+                mNotificationSystem);
+        mReplicationManager.start();
     }
 }

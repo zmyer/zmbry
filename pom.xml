@@ -13,6 +13,10 @@
         <module>zmbry-api</module>
         <module>zmbry-utils</module>
         <module>zmbry-store</module>
+        <module>zmbry-replication</module>
+        <module>zmbry-commons</module>
+        <module>zmbry-messageformat</module>
+        <module>zmbry-network</module>
     </modules>
 
     <dependencies>
